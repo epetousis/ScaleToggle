@@ -19,9 +19,12 @@ display_config_interface = dbus.Interface(display_config_proxy, dbus_interface=d
 serial, physical_monitors, logical_monitors, properties = display_config_interface.GetCurrentState()
 
 updated_logical_monitors=[]
-for x, y, scale, transform, primary, linked_monitors_info, props in logical_monitors:
+primary_resolution=(0,0)
+new_scale=1.0
+for i, (x, y, scale, transform, primary, linked_monitors_info, props) in enumerate(logical_monitors):
     if primary == 1:
         scale = ON_SCALE if (scale == OFF_SCALE) else OFF_SCALE # toggle scaling between user set scaling for the primary monitor
+        new_scale = scale
     physical_monitors_config = []
     for linked_monitor_connector, linked_monitor_vendor, linked_monitor_product, linked_monitor_serial in linked_monitors_info:
         for monitor_info, monitor_modes, monitor_properties in physical_monitors:
@@ -32,8 +35,14 @@ for x, y, scale, transform, primary, linked_monitors_info, props in logical_moni
                         physical_monitors_config.append(dbus.Struct([monitor_connector, mode_id, {}]))
                         if scale not in mode_supported_scales:
                             print("Error: " + monitor_properties.get("display-name") + " doesn't support that scaling value! (" + str(scale) + ")")
-                        else:
+                        elif primary == 1:
                             print("Setting scaling of: " + monitor_properties.get("display-name") + " to " + str(scale) + "!")
+                            # Save our primary monitor's resolution for later
+                            primary_resolution = (mode_width, mode_height)
+    # TODO: if we adjust scaling, the adjacent x and y values are no longer guaranteed to be the same.
+    # Recalculate them (properly), and any other monitors that are affected by the co-ordinate change.
+    if primary == 0:
+        x = primary_resolution[0] / new_scale
     updated_logical_monitor_struct = dbus.Struct([dbus.Int32(x), dbus.Int32(y), dbus.Double(scale), dbus.UInt32(transform), dbus.Boolean(primary), physical_monitors_config])
     updated_logical_monitors.append(updated_logical_monitor_struct)
 
