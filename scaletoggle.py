@@ -21,7 +21,10 @@ serial, physical_monitors, logical_monitors, properties = display_config_interfa
 updated_logical_monitors=[]
 primary_resolution=(0,0)
 new_scale=1.0
-for i, (x, y, scale, transform, primary, linked_monitors_info, props) in enumerate(logical_monitors):
+# Primary monitor needs to be first
+sorted_logical_monitors = sorted(logical_monitors, key=lambda monitor: not monitor[4])
+
+for i, (x, y, scale, transform, primary, linked_monitors_info, props) in enumerate(sorted_logical_monitors):
     if primary == 1:
         scale = ON_SCALE if (scale == OFF_SCALE) else OFF_SCALE # toggle scaling between user set scaling for the primary monitor
         new_scale = scale
